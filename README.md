@@ -8,14 +8,14 @@ What's Inside? The repository includes materials on subjects like:
 
 Circuits & Electronics
 
-Digital Logic & FPGAs
+Digital Logic 
 
 Signals & Systems
 
-Microcontrollers & Embedded C
+Applied EM WAves
 
-Communications & Control Systems
+Etc
 
-Let's Collaborate! This is a living repository, updated as I complete new courses and projects. Feel free to explore, use responsibly for your studies, and contribute fixes or suggestions via pull requests. Questions or found a bug? Please open an Issue.
+Let's Collaborate! This is a living repository, This will be updated as the year continues with new courses and projects. Feel free to explore, use responsibly for your studies, and contribute fixes or suggestions via pull requests. Questions or found a bug? Please open an Issue.
 
 Disclaimer: This content is provided "as-is" for educational inspiration and reference. Always complete your own academic work and adhere to your school's honor code. Verify all concepts and code before implementation.
