@@ -1,0 +1,588 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;****************** main.s ***************
+    2 00000000         ; Program written by: Anaya Scott and Victoria Dehoyos
+    3 00000000         ; Date Created: 2/3/26
+    4 00000000         ; Last Modified: 
+    5 00000000         ; Brief description of the program: 
+    6 00000000         ; 
+    7 00000000         
+    8 00000000         
+    9 00000000         
+   10 00000000                 THUMB
+   11 00000000         
+   12 00000000 00000003 
+                       AStudent1
+                               EQU              3
+   13 00000000 00000002 
+                       AStudent2
+                               EQU              2
+   14 00000000 00000001 
+                       AStudent3
+                               EQU              1
+   15 00000000 00000001 
+                       AStudent4
+                               EQU              1
+   16 00000000 00000003 
+                       AStudent5
+                               EQU              3
+   17 00000000         
+   18 00000000 00000005 
+                       BStudent1
+                               EQU              5
+   19 00000000 00000001 
+                       BStudent2
+                               EQU              1
+   20 00000000 00000004 
+                       BStudent3
+                               EQU              4
+   21 00000000 00000003 
+                       BStudent4
+                               EQU              3
+   22 00000000 00000002 
+                       BStudent5
+                               EQU              2
+   23 00000000         
+   24 00000000 00000007 
+                       CStudent1
+                               EQU              7
+   25 00000000 00000004 
+                       CStudent2
+                               EQU              4
+   26 00000000 00000005 
+                       CStudent3
+                               EQU              5
+   27 00000000 00000003 
+                       CStudent4
+                               EQU              3
+   28 00000000 00000006 
+                       CStudent5
+                               EQU              6
+   29 00000000         
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+   30 00000000 00000005 
+                       GroupN  EQU              5
+   31 00000000         
+   32 00000000         
+   33 00000000         ; ******************************************************
+                       ***************
+   34 00000000         ; *************************** CODE AREA IN ROM *********
+                       ***************
+   35 00000000         ; ******************************************************
+                       ***************
+   36 00000000         ; ROM addresses start at address 0x0000.0000, but your c
+                       ode starts a little after that
+   37 00000000                 AREA             |.text|, CODE, READONLY, ALIGN=
+2 
+                                                            ; Flash EEPROM
+   38 00000000         
+   39 00000000         
+   40 00000000         
+   41 00000000         
+   42 00000000                 EXPORT           Start
+   43 00000000         
+   44 00000000         ; * Program begins here!
+   45 00000000         Start
+   46 00000000         
+   47 00000000         ; ********************************* TASK 1 *************
+                       ********************
+   48 00000000         ; ******************************************************
+                       *********************
+   49 00000000         ; Means
+   50 00000000         ; R12 - MEANS FOR GROUP A, R11 = MEANS FOR GROUP B, R10 
+                       = MEANS FOR GROUP C
+   51 00000000         ; R9 = GRAND MEAN <- THIS IS THE AVERAGE MEAN FOR ALL OF
+                        THE GROUPS.
+   52 00000000         
+   53 00000000         ; GROUP A  
+   54 00000000         ;Load the resistors values for group A
+   55 00000000 F04F 0003       MOV              R0, #AStudent1
+   56 00000004 F04F 0102       MOV              R1, #AStudent2
+   57 00000008 F04F 0201       MOV              R2, #AStudent3
+   58 0000000C F04F 0301       MOV              R3, #AStudent4
+   59 00000010 F04F 0403       MOV              R4, #AStudent5
+   60 00000014         
+   61 00000014         ; Summ of Group A
+   62 00000014 EB00 0501       ADD              R5, R0,R1
+   63 00000018 4415            ADD              R5, R5,R2
+   64 0000001A 441D            ADD              R5, R5,R3
+   65 0000001C 4425            ADD              R5, R5,R4
+   66 0000001E         
+   67 0000001E         ; THIS WILL GATHER THE NUMBER OF GROUPS
+   68 0000001E F04F 0605       MOV              R6,#GroupN
+   69 00000022 FB95 FCF6       SDIV             R12,R5,R6   ; THIS LINE WILL GI
+                                                            VE US THE MEAN OF G
+                                                            ROUP A
+   70 00000026 BF00            NOP
+   71 00000028         ;-------------------------------------------------------
+                       -----
+   72 00000028         ; GROUP B  
+   73 00000028         ;Load the resistors values for group B
+   74 00000028 F04F 0005       MOV              R0, #BStudent1
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   75 0000002C F04F 0101       MOV              R1, #BStudent2
+   76 00000030 F04F 0204       MOV              R2, #BStudent3
+   77 00000034 F04F 0303       MOV              R3, #BStudent4
+   78 00000038 F04F 0402       MOV              R4, #BStudent5
+   79 0000003C         
+   80 0000003C         ; Summ of Group B
+   81 0000003C EB00 0501       ADD              R5, R0,R1
+   82 00000040 4415            ADD              R5, R5,R2
+   83 00000042 441D            ADD              R5, R5,R3
+   84 00000044 4425            ADD              R5, R5,R4
+   85 00000046         
+   86 00000046         
+   87 00000046 FB95 FBF6       SDIV             R11,R5,R6   ; THIS LINE WILL GI
+                                                            VE US THE MEAN OF G
+                                                            ROUP B
+   88 0000004A BF00            NOP
+   89 0000004C         ;-------------------------------------------------------
+                       -----
+   90 0000004C         ; GROUP C  
+   91 0000004C         ;Load the resistors values for group C
+   92 0000004C F04F 0007       MOV              R0, #CStudent1
+   93 00000050 F04F 0104       MOV              R1, #CStudent2
+   94 00000054 F04F 0205       MOV              R2, #CStudent3
+   95 00000058 F04F 0303       MOV              R3, #CStudent4
+   96 0000005C F04F 0406       MOV              R4, #CStudent5
+   97 00000060         
+   98 00000060         ; Summ of Group C
+   99 00000060 EB00 0501       ADD              R5, R0,R1
+  100 00000064 4415            ADD              R5, R5,R2
+  101 00000066 441D            ADD              R5, R5,R3
+  102 00000068 4425            ADD              R5, R5,R4
+  103 0000006A         
+  104 0000006A         
+  105 0000006A FB95 FAF6       SDIV             R10,R5,R6   ; THIS LINE WILL GI
+                                                            VE US THE MEAN OF G
+                                                            ROUP B
+  106 0000006E BF00            NOP
+  107 00000070         ;-------------------------------------------------------
+                       
+  108 00000070         ; THE GRAND MEAN
+  109 00000070 EB0C 000B       ADD              R0, R12,R11
+  110 00000074 4450            ADD              R0, R0,R10
+  111 00000076 F04F 0103       MOV              R1, #3      ; THIS WILL ALLOW U
+                                                            S TO DIVIDE BY 3 GR
+                                                            OUPS
+  112 0000007A FB90 F9F1       SDIV             R9,R0,R1    ; GRAND MEAN IS IN 
+                                                            R9
+  113 0000007E         
+  114 0000007E         
+  115 0000007E BF00            NOP
+  116 00000080         
+  117 00000080         ; ********************************* TASK 2 *************
+                       ********************
+  118 00000080         ; ******************************************************
+                       ********************
+  119 00000080         ; Sum of Squared Errors (SS) by Group
+  120 00000080         ; WE  NEED TO FIND THE SUM OF SQUARED ERRORS BY GROUPS
+  121 00000080         ;R8 IS FOR GROUP A
+  122 00000080         ;R7 IS FOR GROUP B
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  123 00000080         ;R6 IS FOR GROUP C
+  124 00000080         ;------------------------------------------------
+  125 00000080         ;GROUP A
+  126 00000080 F04F 0800       MOV              R8, #0
+  127 00000084         ; UNDERSTAND THAT WE NEED TO CALCULATE (ASTUDENT1 - MEAN
+                       _A)^2
+  128 00000084 F04F 0003       MOV              R0, AStudent1
+  129 00000088 EBA0 010C       SUB              R1,R0,R12   ; THIS IS X-MEAN
+  130 0000008C FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  131 00000090 4488            ADD              R8,R8,R1
+  132 00000092 BF00            NOP
+  133 00000094         ; CONTINUE DOING THIS FOR ALL OF THE STUDENTS IN GORUP A
+                       ,B,C
+  134 00000094         ;STUDENT 2
+  135 00000094 F04F 0002       MOV              R0, AStudent2
+  136 00000098 EBA0 010C       SUB              R1,R0,R12   ; THIS IS X-MEAN
+  137 0000009C FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  138 000000A0 4488            ADD              R8,R8,R1
+  139 000000A2 BF00            NOP
+  140 000000A4         ;STUDENT 3
+  141 000000A4 F04F 0001       MOV              R0, AStudent3
+  142 000000A8 EBA0 010C       SUB              R1,R0,R12   ; THIS IS X-MEAN
+  143 000000AC FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  144 000000B0 4488            ADD              R8,R8,R1
+  145 000000B2 BF00            NOP
+  146 000000B4         ;STUDENT 4
+  147 000000B4 F04F 0001       MOV              R0, AStudent4
+  148 000000B8 EBA0 010C       SUB              R1,R0,R12   ; THIS IS X-MEAN
+  149 000000BC FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  150 000000C0 4488            ADD              R8,R8,R1
+  151 000000C2 BF00            NOP
+  152 000000C4         ;STUDENT 5
+  153 000000C4 F04F 0003       MOV              R0, AStudent5
+  154 000000C8 EBA0 010C       SUB              R1,R0,R12   ; THIS IS X-MEAN
+  155 000000CC FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  156 000000D0 4488            ADD              R8,R8,R1    ; NOW R8 SHOULD HAV
+                                                            E ALL OF THE SSE FO
+                                                            R GROUP A.
+  157 000000D2 BF00            NOP
+  158 000000D4         ;------------------------------------------
+  159 000000D4         ;GROUP B
+  160 000000D4 F04F 0700       MOV              R7,#0
+  161 000000D8         ;STUDENT 1
+  162 000000D8 F04F 0005       MOV              R0, BStudent1
+  163 000000DC EBA0 010B       SUB              R1,R0,R11   ; THIS IS X-MEAN
+  164 000000E0 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  165 000000E4 440F            ADD              R7,R7,R1
+  166 000000E6 BF00            NOP
+  167 000000E8         ;STUDENT 2
+  168 000000E8 F04F 0001       MOV              R0, BStudent2
+  169 000000EC EBA0 010B       SUB              R1,R0,R11   ; THIS IS X-MEAN
+  170 000000F0 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+  171 000000F4 440F            ADD              R7,R7,R1
+  172 000000F6 BF00            NOP
+  173 000000F8         ;STUDENT 3
+  174 000000F8 F04F 0004       MOV              R0, BStudent3
+  175 000000FC EBA0 010B       SUB              R1,R0,R11   ; THIS IS X-MEAN
+  176 00000100 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  177 00000104 440F            ADD              R7,R7,R1
+  178 00000106 BF00            NOP
+  179 00000108         ;STUDENT 4
+  180 00000108 F04F 0003       MOV              R0, BStudent4
+  181 0000010C EBA0 010B       SUB              R1,R0,R11   ; THIS IS X-MEAN
+  182 00000110 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  183 00000114 440F            ADD              R7,R7,R1
+  184 00000116 BF00            NOP
+  185 00000118         ;STUDENT 5
+  186 00000118 F04F 0002       MOV              R0, BStudent5
+  187 0000011C EBA0 010B       SUB              R1,R0,R11   ; THIS IS X-MEAN
+  188 00000120 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  189 00000124 440F            ADD              R7,R7,R1
+  190 00000126 BF00            NOP
+  191 00000128         ;-----------------------------------------------
+  192 00000128         ;GROUP C
+  193 00000128 F04F 0600       MOV              R6,#0
+  194 0000012C         ;STUDENT 1
+  195 0000012C F04F 0007       MOV              R0, CStudent1
+  196 00000130 EBA0 010A       SUB              R1,R0,R10   ; THIS IS X-MEAN
+  197 00000134 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  198 00000138 440E            ADD              R6,R6,R1
+  199 0000013A BF00            NOP
+  200 0000013C         ;STUDENT 2
+  201 0000013C F04F 0004       MOV              R0, CStudent2
+  202 00000140 EBA0 010A       SUB              R1,R0,R10   ; THIS IS X-MEAN
+  203 00000144 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  204 00000148 440E            ADD              R6,R6,R1
+  205 0000014A BF00            NOP
+  206 0000014C         ;STUDENT 3
+  207 0000014C F04F 0005       MOV              R0, CStudent3
+  208 00000150 EBA0 010A       SUB              R1,R0,R10   ; THIS IS X-MEAN
+  209 00000154 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  210 00000158 440E            ADD              R6,R6,R1
+  211 0000015A BF00            NOP
+  212 0000015C         ;STUDENT 4
+  213 0000015C F04F 0003       MOV              R0, CStudent4
+  214 00000160 EBA0 010A       SUB              R1,R0,R10   ; THIS IS X-MEAN
+  215 00000164 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+  216 00000168 440E            ADD              R6,R6,R1
+  217 0000016A BF00            NOP
+  218 0000016C         ;STUDENT 5
+  219 0000016C F04F 0006       MOV              R0, CStudent5
+  220 00000170 EBA0 010A       SUB              R1,R0,R10   ; THIS IS X-MEAN
+  221 00000174 FB01 F101       MUL              R1,R1,R1    ; THIS MAKE (X-MEAN
+                                                            )^2
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  222 00000178 440E            ADD              R6,R6,R1
+  223 0000017A BF00            NOP
+  224 0000017C         
+  225 0000017C         ; NEED TO DOUBLE CHECK TASK 2 !!!!!!!!!!
+  226 0000017C         
+  227 0000017C         
+  228 0000017C         
+  229 0000017C         
+  230 0000017C         ; ********************************* TASK 3 *************
+                       ********************
+  231 0000017C         ; ******************************************************
+                       ********************
+  232 0000017C         ; SSR -> Regression Sum of Squares
+  233 0000017C         ; R5 = (meanA - grandMean)^2 + (meanB - grandMean)^2 + (
+                       meanC - grandMean)^2 
+  234 0000017C F04F 0500       MOV              R5, #0
+  235 00000180         ; (R12 - R9)^2 
+  236 00000180 EBAC 0009       SUB              R0, R12, R9
+  237 00000184 FB00 F000       MUL              R0, R0, R0
+  238 00000188 4405            ADD              R5, R5, R0
+  239 0000018A         ; (R11 - R9)^2 
+  240 0000018A EBAB 0009       SUB              R0, R11, R9
+  241 0000018E FB00 F000       MUL              R0, R0, R0
+  242 00000192 4405            ADD              R5, R5, R0
+  243 00000194         ; (R10 - R9)^2 
+  244 00000194 EBAA 0009       SUB              R0, R10, R9
+  245 00000198 FB00 F000       MUL              R0, R0, R0
+  246 0000019C 4405            ADD              R5, R5, R0
+  247 0000019E         
+  248 0000019E         
+  249 0000019E BF00            NOP
+  250 000001A0         
+  251 000001A0         
+  252 000001A0         
+  253 000001A0         ; ********************************* TASK 4 *************
+                       ********************
+  254 000001A0         ; ******************************************************
+                       ********************
+  255 000001A0         ; SSE -> error sum of squares total
+  256 000001A0         ; SSE (R4) = SS1 (R8) + SS2 (R7) + SS3 (R6)
+  257 000001A0         
+  258 000001A0         
+  259 000001A0         
+  260 000001A0 EB08 0407       ADD              R4, R8, R7
+  261 000001A4 4434            ADD              R4, R4, R6
+  262 000001A6 EB05 0304       ADD              R3, R5, R4
+  263 000001AA BF00            NOP
+  264 000001AC         
+  265 000001AC         
+  266 000001AC         
+  267 000001AC         
+  268 000001AC         
+  269 000001AC         
+  270 000001AC BF00            NOP
+  271 000001AE         
+  272 000001AE 00 00           ALIGN                        ; make sure the end
+                                                             of this section is
+                                                             aligned
+  273 000001B0                 END                          ; end of file
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+Command Line: --debug --xref --diag_suppress=9931,A1950W --cpu=Cortex-M4 --fpu=
+SoftVFP --depend=.\main.d -o.\main.o -I.\RTE\_Lab1 -IC:\Users\ladyb\AppData\Loc
+al\Arm\Packs\ARM\CMSIS\6.3.0\CMSIS\Core\Include -IC:\Users\ladyb\AppData\Local\
+Arm\Packs\Keil\TM4C_DFP\1.1.0\Device\Include\TM4C123 --predefine="__EVAL SETA 1
+" --predefine="__UVISION_VERSION SETA 539" --predefine="_RTE_ SETA 1" --predefi
+ne="TM4C123GH6PM SETA 1" --predefine="_RTE_ SETA 1" --list=.\main.lst main.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.text 00000000
+
+Symbol: .text
+   Definitions
+      At line 37 in file main.s
+   Uses
+      None
+Comment: .text unused
+Start 00000000
+
+Symbol: Start
+   Definitions
+      At line 45 in file main.s
+   Uses
+      At line 42 in file main.s
+Comment: Start used once
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+AStudent1 00000003
+
+Symbol: AStudent1
+   Definitions
+      At line 12 in file main.s
+   Uses
+      At line 55 in file main.s
+      At line 128 in file main.s
+
+AStudent2 00000002
+
+Symbol: AStudent2
+   Definitions
+      At line 13 in file main.s
+   Uses
+      At line 56 in file main.s
+      At line 135 in file main.s
+
+AStudent3 00000001
+
+Symbol: AStudent3
+   Definitions
+      At line 14 in file main.s
+   Uses
+      At line 57 in file main.s
+      At line 141 in file main.s
+
+AStudent4 00000001
+
+Symbol: AStudent4
+   Definitions
+      At line 15 in file main.s
+   Uses
+      At line 58 in file main.s
+      At line 147 in file main.s
+
+AStudent5 00000003
+
+Symbol: AStudent5
+   Definitions
+      At line 16 in file main.s
+   Uses
+      At line 59 in file main.s
+      At line 153 in file main.s
+
+BStudent1 00000005
+
+Symbol: BStudent1
+   Definitions
+      At line 18 in file main.s
+   Uses
+      At line 74 in file main.s
+      At line 162 in file main.s
+
+BStudent2 00000001
+
+Symbol: BStudent2
+   Definitions
+      At line 19 in file main.s
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Absolute symbols
+
+   Uses
+      At line 75 in file main.s
+      At line 168 in file main.s
+
+BStudent3 00000004
+
+Symbol: BStudent3
+   Definitions
+      At line 20 in file main.s
+   Uses
+      At line 76 in file main.s
+      At line 174 in file main.s
+
+BStudent4 00000003
+
+Symbol: BStudent4
+   Definitions
+      At line 21 in file main.s
+   Uses
+      At line 77 in file main.s
+      At line 180 in file main.s
+
+BStudent5 00000002
+
+Symbol: BStudent5
+   Definitions
+      At line 22 in file main.s
+   Uses
+      At line 78 in file main.s
+      At line 186 in file main.s
+
+CStudent1 00000007
+
+Symbol: CStudent1
+   Definitions
+      At line 24 in file main.s
+   Uses
+      At line 92 in file main.s
+      At line 195 in file main.s
+
+CStudent2 00000004
+
+Symbol: CStudent2
+   Definitions
+      At line 25 in file main.s
+   Uses
+      At line 93 in file main.s
+      At line 201 in file main.s
+
+CStudent3 00000005
+
+Symbol: CStudent3
+   Definitions
+      At line 26 in file main.s
+   Uses
+      At line 94 in file main.s
+      At line 207 in file main.s
+
+CStudent4 00000003
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Absolute symbols
+
+
+Symbol: CStudent4
+   Definitions
+      At line 27 in file main.s
+   Uses
+      At line 95 in file main.s
+      At line 213 in file main.s
+
+CStudent5 00000006
+
+Symbol: CStudent5
+   Definitions
+      At line 28 in file main.s
+   Uses
+      At line 96 in file main.s
+      At line 219 in file main.s
+
+GroupN 00000005
+
+Symbol: GroupN
+   Definitions
+      At line 30 in file main.s
+   Uses
+      At line 68 in file main.s
+Comment: GroupN used once
+16 symbols
+352 symbols in table
