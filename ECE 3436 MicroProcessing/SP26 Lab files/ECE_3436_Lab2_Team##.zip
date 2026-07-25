@@ -1,0 +1,132 @@
+;****************** main.s ***************
+; Program written by: Dr. D
+; Date Created: 09/25/023
+; Last Modified: 09/23/2023
+; Brief description of the program: ASCII character counter
+
+	THUMB
+		
+; Test Pattern 1
+Pattern1		EQU		2_00110000001100010011001000110011		; 0,1,2,3
+;Pattern1		EQU		2_01000001010000100100001101000100		; A,B,C,D
+;Pattern1		EQU		2_00000000000000000000000000000000		; NULL, NULL, NULL, NULL
+;Pattern1		EQU		2_01001111010010000000000000110110		; O,H,NULL,6
+
+		  
+; *********************************************************************
+; *************************** CODE AREA IN ROM ************************
+; *********************************************************************
+	AREA    |.text|, CODE, READONLY, ALIGN=2		; Flash ROM
+		  		  		 
+	EXPORT  Start
+
+; ********************* MAIN PROGRAM ****************************
+
+Start
+ ; THIS WILL TEST THE PATTERN INTO R0
+	LDR R0,=Pattern1
+	LDR R0, [R0]
+ 
+ ; COUNTERS
+	MOV R3, #0 ; R3 = SUM OF DIGITS
+	MOV R4,#0 ; THIS WILL COUNT THE DIGITS
+	MOV R5, #0 ; COUNTS OF A-O LETTERS
+	MOV R6,#0 ; COUNT OF NULL CHARACTERS
+ 
+ ; ---WE NEED TO PROCESS THE LSB TO THE MSB--------------
+ ; -----------BYTE 0------------------------
+ 
+	AND R1, R0, #0xFF ; R1 WILL BE OUR LOWEST BYTE
+ 
+ ; AND IS A BITWISE LOGICAL AND OPERATION. 
+ ; WE NEED TO DOUBLE CHECK IF THE DIGITS IS '0' -'9' 
+ ; IN ASCII ITS 0X30 TO 0X39
+ 
+ ; ---------------TASK 1--------------------
+ 
+	SUB R2, R2, #0x30 ; ASCII R2 IS 0x30
+	CMP R2, #9 ; -COMPARE IT AGAINST 9
+	ADDLS R4,R4,#1 ; IF <= 9, THEN INCREMENT THE DIGIT COUNT
+	ADDLS R3,R3,R2 ; THIS WILL ADD THE NUMERIC VALUE TO THE SUM
+	
+	;---------TASK 2: IF A-O-----------------
+	
+	; CHECK IF THE LETTER IS IN THE A-O RANGE
+	; NOTE THAT A-O IS 41 TO 4F
+	
+	SUB R2,R1,#0x41 ; R2 IS THE ASCII VALE OF A
+	CMP R2,#14 ; A=0, O=14 
+	ADDLS R5,R5,#1 ; IF <- 14, THEN INCREMENT A-O COUNT
+	
+	;-----------TASK 2: IF NULL---------------------
+	
+	; LETS CHECK THE NULL INDICATORS IN THE ASCII
+	
+	CMP R1,#0x00
+	ADDEQ R6,R6,#1 ; IF NULL, THEN INCREMENT THE NULL COUNT.
+	
+	;--------- BYTE 1------------------
+	
+	LSR R0,R0,#8 ; THIS WILL ALLOW A SHIFT TO THE RIGHT BY 8 BYTES
+	AND R1, R0, #0xFF ; R1 = BYTE 1 
+	
+	; CHECK IF DIGITS ARE IN RANGE
+	
+	SUB R2,R1,#0x30
+	CMP R2, #9
+	ADDLS R4,R4,#1
+	ADDLS R3, R3,R2
+	
+	;-------TASK 2: A-O ---------------
+	SUB R2,R1,#0x41 ; R2 IS THE ASCII VALE OF A
+	CMP R2,#14 ; A=0, O=14 
+	ADDLS R5,R5,#1 ; IF <- 14, THEN INCREMENT A-O COUNT
+	
+	;---TASK 2: NULL-------------
+	CMP R1,#0x00
+	ADDEQ R6,R6,#1 ; IF NULL, THEN INCREMENT THE NULL COUNT.
+	
+	;--------BYTE 2--------------
+	LSR R0,R0,#8 ; THIS WILL ALLOW A SHIFT TO THE RIGHT BY 8 BYTES
+	AND R1, R0, #0xFF ; R1 = BYTE 1 
+	
+	; CHECK IF DIGITS ARE IN RANGE
+	
+	SUB R2,R1,#0x30
+	CMP R2, #9
+	ADDLS R4,R4,#1
+	ADDLS R3, R3,R2
+	
+	;-------TASK 2: A-O ---------------
+	SUB R2,R1,#0x41 ; R2 IS THE ASCII VALE OF A
+	CMP R2,#14 ; A=0, O=14 
+	ADDLS R5,R5,#1 ; IF <- 14, THEN INCREMENT A-O COUNT
+	
+	;---TASK 2: NULL-------------
+	CMP R1,#0x00
+	ADDEQ R6,R6,#1 ; IF NULL, THEN INCREMENT THE NULL COUNT.
+	
+	;---------BYTE 3----------------
+	LSR R0,R0,#8 ; THIS WILL ALLOW A SHIFT TO THE RIGHT BY 8 BYTES
+	AND R1, R0, #0xFF ; R1 = BYTE 1 
+	
+	; CHECK IF DIGITS ARE IN RANGE
+	
+	SUB R2,R1,#0x30
+	CMP R2, #9
+	ADDLS R4,R4,#1
+	ADDLS R3, R3,R2
+	
+	;-------TASK 2: A-O ---------------
+	SUB R2,R1,#0x41 ; R2 IS THE ASCII VALE OF A
+	CMP R2,#14 ; A=0, O=14 
+	ADDLS R5,R5,#1 ; IF <- 14, THEN INCREMENT A-O COUNT
+	
+	;---TASK 2: NULL-------------
+	CMP R1,#0x00	ADDEQ R6,R6,#1 ; IF NULL, THEN INCREMENT THE NULL COUNT.
+	
+	;---------END OF THE PROGRAM--------
+
+      
+      ALIGN        ; make sure the end of this section is aligned
+      END          ; end of file
