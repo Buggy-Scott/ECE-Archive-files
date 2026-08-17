@@ -1,0 +1,218 @@
+% ============================================================
+%  ECE 3317 Spring 2026 - Microstrip Matching Project
+%  Student: David Aranda Marquez
+%
+%  FILE:    ECE3317_Design3.m
+%  PURPOSE: Design 3 — Single Open-Circuited Shunt Stub
+%                      at a Distance
+%
+%  NOTE ON DESIGN 3:
+%  The correct d is found by searching for where the
+%  NORMALIZED ADMITTANCE real part = 1 (g=1 circle).
+%  This gives d = 2.9201 mm (not 2.1198 mm — that was wrong).
+%  Verified: SWR = 1.0000 at f0 with this corrected value.
+%
+%  HOW TO RUN:
+%    1. Save as ECE3317_Design3.m
+%    2. Open in MATLAB Editor
+%    3. Press F5 — Do NOT paste into Command Window
+%
+%  SAVES: swr_design3.pdf
+% ============================================================
+clear; clc; close all;
+
+% ============================================================
+%  GIVEN PARAMETERS
+% ============================================================
+f0  = 10.0e9;
+er  = 2.35;
+h   = 1.575;
+Z0  = 50.0;
+Z0s = 100.0;
+ZL  = 100.0 - 100.0j;
+c0  = 299792458 * 1000;
+Y0s = 1/Z0s;
+
+% ============================================================
+%  TASK 1 — Main Line Width and Effective Permittivity
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 1 — Main Line Width and Effective Permittivity\n');
+fprintf('============================================================\n');
+
+wh_main   = fzero(@(x) 120*pi/(sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x)) ...
+            *(x+1.393+0.667*log(x+1.444))) - Z0, 3.0);
+w_main    = wh_main*h;
+eeff_main = (er+1)/2+(er-1)/2/sqrt(1+12/wh_main);
+lg_main   = c0/(f0*sqrt(eeff_main));
+beta_m    = 2*pi*f0*sqrt(eeff_main)/c0;
+gamma_L   = (ZL-Z0)/(ZL+Z0);
+
+fprintf('  w=%.4f mm,  er_eff=%.4f,  lg=%.4f mm\n\n',w_main,eeff_main,lg_main);
+
+% ============================================================
+%  TASK 2 — Design 3 Dimensions
+%  Finds d (where g=1), stub width ws, stub length ls
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 2 — Design 3 Dimensions: Single Shunt Stub\n');
+fprintf('============================================================\n');
+
+% Step 1: Stub line width for Z0s = 100 Ohm
+fprintf('  Step 1: Stub line (Z0s=100 Ohm)\n');
+wh_s_try = fzero(@(x) 120*pi/(sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x)) ...
+           *(x+1.393+0.667*log(x+1.444))) - Z0s, 2.0);
+if wh_s_try >= 0.5
+    wh_stub = wh_s_try;
+else
+    wh_stub = fzero(@(x) (60/sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x))) ...
+              *log(8/x+x/4) - Z0s, 0.5);
+end
+ws        = wh_stub*h;
+eeff_stub = (er+1)/2+(er-1)/2/sqrt(1+12/wh_stub);
+beta_stub = 2*pi*f0*sqrt(eeff_stub)/c0;
+fprintf('    ws=%.4f mm,  er_eff=%.4f\n\n',ws,eeff_stub);
+
+% Step 2: Find minimum d where normalized conductance g = 1
+% Moving toward generator: Gamma(d) = gamma_L * exp(-2j*beta*d)
+% Normalized admittance: y(d) = (1 - Gamma(d)) / (1 + Gamma(d))
+% Search for d where real(y(d)) = 1 — pick the smallest d
+fprintf('  Step 2: Finding minimum d where g=1 on Smith chart\n');
+d_search  = linspace(0.001, lg_main/2, 200000);
+g_vals    = zeros(size(d_search));
+b_vals    = zeros(size(d_search));
+for k = 1:length(d_search)
+    Gd        = gamma_L * exp(-2j*beta_m*d_search(k));
+    yd        = (1-Gd)/(1+Gd);
+    g_vals(k) = real(yd);
+    b_vals(k) = imag(yd);
+end
+
+crossings     = find(diff(sign(g_vals-1)) ~= 0);
+d3_cands      = zeros(1,length(crossings));
+b3_cands      = zeros(1,length(crossings));
+for k = 1:length(crossings)
+    d_lo = d_search(crossings(k));
+    d_hi = d_search(crossings(k)+1);
+    dc   = fzero(@(d) real((1-gamma_L*exp(-2j*beta_m*d)) ...
+                           /(1+gamma_L*exp(-2j*beta_m*d)))-1, [d_lo d_hi]);
+    Gd           = gamma_L*exp(-2j*beta_m*dc);
+    yd           = (1-Gd)/(1+Gd);
+    d3_cands(k)  = dc;
+    b3_cands(k)  = imag(yd);
+    fprintf('    Candidate %d: d=%.4f mm, b_residual=%.4f\n',k,dc,imag(yd));
+end
+
+% Select smallest positive d
+valid        = d3_cands > 1e-6;
+[d3_mm, i3] = min(d3_cands(valid));
+b_tmp        = b3_cands(valid);
+b3_residual  = b_tmp(i3);
+fprintf('    --> Selected: d=%.4f mm, b_residual=%.4f\n\n',d3_mm,b3_residual);
+
+% Step 3: Stub length to cancel residual susceptance
+% Actual susceptance: Bs = -b_residual * Y0
+% Open stub: Y0s*tan(beta*ls) = Bs
+fprintf('  Step 3: Stub length\n');
+Bs3    = -b3_residual/Z0;
+ls3_mm = (1/beta_stub)*atan(Bs3/Y0s);
+if ls3_mm < 0
+    ls3_mm = ls3_mm + pi/beta_stub;
+end
+fprintf('    Bs=%.6f S,  ls=%.4f mm\n\n',Bs3,ls3_mm);
+
+% Verify at f0
+Gd3  = gamma_L*exp(-2j*beta_m*d3_mm);
+Zd3  = Z0*(1+Gd3)/(1-Gd3);
+Ys3  = 1j*Y0s*tan(beta_stub*ls3_mm);
+Zin3 = 1/((1/Zd3)+Ys3);
+swr3 = (1+abs((Zin3-Z0)/(Zin3+Z0)))/(1-abs((Zin3-Z0)/(Zin3+Z0)));
+fprintf('  Verification at f0=10 GHz: Zin=%.4f+j%.4f, SWR=%.6f\n\n',...
+        real(Zin3),imag(Zin3),swr3);
+
+fprintf('  ---- TASK 2 SUMMARY ----\n');
+fprintf('  w  = %.4f mm\n',  w_main);
+fprintf('  d  = %.4f mm\n',  d3_mm);
+fprintf('  ws = %.4f mm,  er_eff(s)=%.4f\n',ws,eeff_stub);
+fprintf('  ls = %.4f mm\n\n',ls3_mm);
+
+% ============================================================
+%  TASK 3 — SWR vs. Frequency (8 to 12 GHz)
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 3 — SWR vs. Frequency (8 to 12 GHz)\n');
+fprintf('============================================================\n');
+
+N          = 2000;
+freq       = linspace(8e9,12e9,N);
+swr_before = zeros(1,N);
+swr_after  = zeros(1,N);
+
+G_raw         = (ZL-Z0)/(ZL+Z0);
+swr_before(:) = (1+abs(G_raw))/(1-abs(G_raw));
+
+for i = 1:N
+    f     = freq(i);
+    bm    = 2*pi*f*sqrt(eeff_main)/c0;
+    bs    = 2*pi*f*sqrt(eeff_stub)/c0;
+    Zd    = Z0*(ZL+1j*Z0*tan(bm*d3_mm))/(Z0+1j*ZL*tan(bm*d3_mm));
+    Ys    = 1j*Y0s*tan(bs*ls3_mm);
+    Zin   = 1/((1/Zd)+Ys);
+    G_f   = (Zin-Z0)/(Zin+Z0);
+    swr_after(i) = (1+abs(G_f))/(1-abs(G_f));
+end
+swr_after = min(swr_after,30);
+
+fprintf('  SWR at key frequencies:\n');
+for fc = [8 9 10 11 12]
+    idx_f = min(N, max(1, round((fc-8)/4*(N-1))+1));
+    fprintf('    f=%2d GHz => SWR=%.4f\n',fc,swr_after(idx_f));
+end
+fprintf('\n');
+
+% ============================================================
+%  TASK 4 — Percent Bandwidth (SWR <= 2.0)
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 4 — Percent Bandwidth\n');
+fprintf('============================================================\n');
+
+in_band = freq(swr_after <= 2.0);
+if isempty(in_band)
+    fprintf('  SWR never reaches 2.0 — no bandwidth found\n\n');
+    f1_bw=NaN; f2_bw=NaN; bw_pct=0;
+else
+    f1_bw  = in_band(1);
+    f2_bw  = in_band(end);
+    bw_pct = (f2_bw-f1_bw)/f0*100;
+    fprintf('  f1  = %.4f GHz\n',f1_bw/1e9);
+    fprintf('  f2  = %.4f GHz\n',f2_bw/1e9);
+    fprintf('  BW%% = %.2f%%\n\n',bw_pct);
+end
+
+% ============================================================
+%  PLOT
+% ============================================================
+figure('Units','inches','Position',[1 1 7 4.5]);
+plot(freq/1e9,swr_before,'--','Color',[0.5 0.5 0.5],'LineWidth',1.8,...
+     'DisplayName','Unmatched Load'); hold on;
+plot(freq/1e9,swr_after,'-','Color',[0.17 0.63 0.17],'LineWidth',2,...
+     'DisplayName','Matched System (Design 3)');
+yline(2.0,'--','Color',[0.85 0.33 0.10],'LineWidth',1.4,...
+      'DisplayName','SWR = 2.0 Limit');
+xline(10,'-.','Color',[0.6 0.6 0.6],'LineWidth',1,...
+      'DisplayName','f_0 = 10 GHz');
+if ~isnan(f1_bw)
+    plot(f1_bw/1e9,2.0,'ro','MarkerFaceColor','r','MarkerSize',7,'HandleVisibility','off');
+    plot(f2_bw/1e9,2.0,'ro','MarkerFaceColor','r','MarkerSize',7,'HandleVisibility','off');
+    text(f1_bw/1e9+0.05,2.2,sprintf('f_1: %.2f GHz',f1_bw/1e9),'FontSize',8,'Color',[0.7 0 0]);
+    text(f2_bw/1e9+0.05,2.2,sprintf('f_2: %.2f GHz',f2_bw/1e9),'FontSize',8,'Color',[0.7 0 0]);
+end
+grid on; xlim([8 12]); ylim([1 max(swr_before)*1.15]);
+xlabel('Frequency (GHz)','FontSize',11);
+ylabel('SWR','FontSize',11);
+title(sprintf('Design 3 — Single Shunt Stub: BW = %.2f%%',bw_pct),...
+      'FontSize',12,'FontWeight','bold');
+legend('Location','northeast','FontSize',9);
+exportgraphics(gcf,'swr_design3.pdf','ContentType','vector');
+fprintf('  Saved: swr_design3.pdf\n');

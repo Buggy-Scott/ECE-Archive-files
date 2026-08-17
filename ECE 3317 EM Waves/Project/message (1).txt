@@ -1,0 +1,204 @@
+% ============================================================
+%  ECE 3317 Spring 2026 - Microstrip Matching Project
+%  Student: David Aranda Marquez
+%
+%  FILE:    ECE3317_Design2.m
+%  PURPOSE: Design 2 — Open-Circuited Shunt Stub
+%                      + Quarter-Wave Transformer
+%
+%  HOW TO RUN:
+%    1. Save as ECE3317_Design2.m
+%    2. Open in MATLAB Editor
+%    3. Press F5 — Do NOT paste into Command Window
+%
+%  SAVES: swr_design2.pdf
+% ============================================================
+clear; clc; close all;
+
+% ============================================================
+%  GIVEN PARAMETERS
+% ============================================================
+f0  = 10.0e9;
+er  = 2.35;
+h   = 1.575;
+Z0  = 50.0;
+Z0s = 100.0;
+ZL  = 100.0 - 100.0j;
+c0  = 299792458 * 1000;
+Y0s = 1/Z0s;
+
+% ============================================================
+%  TASK 1 — Main Line Width and Effective Permittivity
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 1 — Main Line Width and Effective Permittivity\n');
+fprintf('============================================================\n');
+
+wh_main   = fzero(@(x) 120*pi/(sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x)) ...
+            *(x+1.393+0.667*log(x+1.444))) - Z0, 3.0);
+w_main    = wh_main*h;
+eeff_main = (er+1)/2+(er-1)/2/sqrt(1+12/wh_main);
+lg_main   = c0/(f0*sqrt(eeff_main));
+
+fprintf('  w=%.4f mm,  er_eff=%.4f,  lg=%.4f mm\n\n',w_main,eeff_main,lg_main);
+
+% ============================================================
+%  TASK 2 — Design 2 Dimensions
+%  Stub cancels imaginary part of load admittance.
+%  Transformer then matches remaining real impedance to Z0.
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 2 — Design 2 Dimensions: Stub + Transformer\n');
+fprintf('============================================================\n');
+
+% Step 1: Stub line width for Z0s = 100 Ohm
+% Try wide branch first, fall back to narrow if w/h < 0.5
+fprintf('  Step 1: Stub line (Z0s=100 Ohm)\n');
+wh_s_try = fzero(@(x) 120*pi/(sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x)) ...
+           *(x+1.393+0.667*log(x+1.444))) - Z0s, 2.0);
+if wh_s_try >= 0.5
+    wh_stub = wh_s_try;
+else
+    wh_stub = fzero(@(x) (60/sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x))) ...
+              *log(8/x+x/4) - Z0s, 0.5);
+end
+ws        = wh_stub*h;
+eeff_stub = (er+1)/2+(er-1)/2/sqrt(1+12/wh_stub);
+beta_stub = 2*pi*f0*sqrt(eeff_stub)/c0;
+fprintf('    ws=%.4f mm,  er_eff=%.4f\n\n',ws,eeff_stub);
+
+% Step 2: Load admittance YL = GL + jBL
+fprintf('  Step 2: Load admittance\n');
+YL = 1/ZL;
+GL = real(YL);
+BL = imag(YL);
+fprintf('    GL=%.6f S,  BL=%.6f S\n\n',GL,BL);
+
+% Step 3: Stub length to cancel BL
+% Open stub: Y0s*tan(beta*ls) = -BL
+fprintf('  Step 3: Stub length\n');
+Bs    = -BL;
+ls_mm = (1/beta_stub)*atan(Bs/Y0s);
+if ls_mm < 0
+    ls_mm = ls_mm + pi/beta_stub;
+end
+fprintf('    Bs=%.6f S,  ls=%.4f mm\n\n',Bs,ls_mm);
+
+% Step 4: Real impedance after stub
+R2_in = 1/GL;
+fprintf('  Step 4: R_in = 1/GL = %.4f Ohm\n\n',R2_in);
+
+% Step 5: Transformer ZT = sqrt(Z0 * R_in)
+ZT2 = sqrt(Z0*R2_in);
+fprintf('  Step 5: ZT = sqrt(%.1f * %.4f) = %.4f Ohm\n\n',Z0,R2_in,ZT2);
+
+% Step 6: Transformer width and length
+wh_t_try = fzero(@(x) 120*pi/(sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x)) ...
+           *(x+1.393+0.667*log(x+1.444))) - ZT2, 2.0);
+if wh_t_try >= 0.5
+    wh_trans = wh_t_try;
+else
+    wh_trans = fzero(@(x) (60/sqrt((er+1)/2+(er-1)/2/sqrt(1+12/x))) ...
+               *log(8/x+x/4) - ZT2, 0.5);
+end
+wt2        = wh_trans*h;
+eeff_trans = (er+1)/2+(er-1)/2/sqrt(1+12/wh_trans);
+lt2_mm     = c0/(f0*sqrt(eeff_trans))/4;
+fprintf('  Step 6: wt=%.4f mm,  er_eff=%.4f,  lt=%.4f mm\n\n',wt2,eeff_trans,lt2_mm);
+
+% Verify at f0
+bs0  = 2*pi*f0*sqrt(eeff_stub)/c0;
+bt0  = 2*pi*f0*sqrt(eeff_trans)/c0;
+Ys0  = 1j*Y0s*tan(bs0*ls_mm);
+Za0  = 1/((1/ZL)+Ys0);
+Zin0 = ZT2*(Za0+1j*ZT2*tan(bt0*lt2_mm))/(ZT2+1j*Za0*tan(bt0*lt2_mm));
+swr0 = (1+abs((Zin0-Z0)/(Zin0+Z0)))/(1-abs((Zin0-Z0)/(Zin0+Z0)));
+fprintf('  Verification at f0=10 GHz: Zin=%.4f+j%.4f, SWR=%.6f\n\n',...
+        real(Zin0),imag(Zin0),swr0);
+
+fprintf('  ---- TASK 2 SUMMARY ----\n');
+fprintf('  w  = %.4f mm\n',  w_main);
+fprintf('  ws = %.4f mm,  er_eff(s)=%.4f,  ls=%.4f mm\n',ws,eeff_stub,ls_mm);
+fprintf('  ZT = %.4f Ohm\n', ZT2);
+fprintf('  wt = %.4f mm,  er_eff(t)=%.4f,  lt=%.4f mm\n\n',wt2,eeff_trans,lt2_mm);
+
+% ============================================================
+%  TASK 3 — SWR vs. Frequency (8 to 12 GHz)
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 3 — SWR vs. Frequency (8 to 12 GHz)\n');
+fprintf('============================================================\n');
+
+N          = 2000;
+freq       = linspace(8e9,12e9,N);
+swr_before = zeros(1,N);
+swr_after  = zeros(1,N);
+
+G_raw         = (ZL-Z0)/(ZL+Z0);
+swr_before(:) = (1+abs(G_raw))/(1-abs(G_raw));
+
+for i = 1:N
+    f     = freq(i);
+    bs    = 2*pi*f*sqrt(eeff_stub)/c0;
+    bt    = 2*pi*f*sqrt(eeff_trans)/c0;
+    Ys    = 1j*Y0s*tan(bs*ls_mm);
+    Za    = 1/((1/ZL)+Ys);
+    Zin   = ZT2*(Za+1j*ZT2*tan(bt*lt2_mm))/(ZT2+1j*Za*tan(bt*lt2_mm));
+    G_f   = (Zin-Z0)/(Zin+Z0);
+    swr_after(i) = (1+abs(G_f))/(1-abs(G_f));
+end
+swr_after = min(swr_after,30);
+
+fprintf('  SWR at key frequencies:\n');
+for fc = [8 9 10 11 12]
+    idx_f = min(N, max(1, round((fc-8)/4*(N-1))+1));
+    fprintf('    f=%2d GHz => SWR=%.4f\n',fc,swr_after(idx_f));
+end
+fprintf('\n');
+
+% ============================================================
+%  TASK 4 — Percent Bandwidth (SWR <= 2.0)
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 4 — Percent Bandwidth\n');
+fprintf('============================================================\n');
+
+in_band = freq(swr_after <= 2.0);
+if isempty(in_band)
+    fprintf('  SWR never reaches 2.0 — no bandwidth found\n\n');
+    f1_bw=NaN; f2_bw=NaN; bw_pct=0;
+else
+    f1_bw  = in_band(1);
+    f2_bw  = in_band(end);
+    bw_pct = (f2_bw-f1_bw)/f0*100;
+    fprintf('  f1  = %.4f GHz\n',f1_bw/1e9);
+    fprintf('  f2  = %.4f GHz\n',f2_bw/1e9);
+    fprintf('  BW%% = %.2f%%\n\n',bw_pct);
+end
+
+% ============================================================
+%  PLOT
+% ============================================================
+figure('Units','inches','Position',[1 1 7 4.5]);
+plot(freq/1e9,swr_before,'--','Color',[0.5 0.5 0.5],'LineWidth',1.8,...
+     'DisplayName','Unmatched Load'); hold on;
+plot(freq/1e9,swr_after,'-','Color',[0.84 0.15 0.16],'LineWidth',2,...
+     'DisplayName','Matched System (Design 2)');
+yline(2.0,'--','Color',[0.85 0.33 0.10],'LineWidth',1.4,...
+      'DisplayName','SWR = 2.0 Limit');
+xline(10,'-.','Color',[0.6 0.6 0.6],'LineWidth',1,...
+      'DisplayName','f_0 = 10 GHz');
+if ~isnan(f1_bw)
+    plot(f1_bw/1e9,2.0,'ro','MarkerFaceColor','r','MarkerSize',7,'HandleVisibility','off');
+    plot(f2_bw/1e9,2.0,'ro','MarkerFaceColor','r','MarkerSize',7,'HandleVisibility','off');
+    text(f1_bw/1e9+0.05,2.2,sprintf('f_1: %.2f GHz',f1_bw/1e9),'FontSize',8,'Color',[0.7 0 0]);
+    text(f2_bw/1e9+0.05,2.2,sprintf('f_2: %.2f GHz',f2_bw/1e9),'FontSize',8,'Color',[0.7 0 0]);
+end
+grid on; xlim([8 12]); ylim([1 max(swr_before)*1.15]);
+xlabel('Frequency (GHz)','FontSize',11);
+ylabel('SWR','FontSize',11);
+title(sprintf('Design 2 — Stub + Transformer: BW = %.2f%%',bw_pct),...
+      'FontSize',12,'FontWeight','bold');
+legend('Location','northeast','FontSize',9);
+exportgraphics(gcf,'swr_design2.pdf','ContentType','vector');
+fprintf('  Saved: swr_design2.pdf\n');

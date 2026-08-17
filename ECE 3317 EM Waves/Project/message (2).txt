@@ -1,0 +1,252 @@
+% ============================================================
+%  ECE 3317 Spring 2026 - Microstrip Matching Project
+%  Student: David Aranda Marquez
+%
+%  FILE:    ECE3317_Design1.m
+%  PURPOSE: Design 1 — Quarter-Wave Transformer
+%
+%  HOW TO RUN:
+%    1. Save as ECE3317_Design1.m
+%    2. Open in MATLAB Editor
+%    3. Press F5 — Do NOT paste into Command Window
+%
+%  SAVES: swr_design1.pdf
+% ============================================================
+clear; clc; close all;
+
+% ============================================================
+%  GIVEN PARAMETERS
+% ============================================================
+f0 = 10.0e9;           % Design frequency [Hz]
+er = 2.35;             % Substrate relative permittivity
+h  = 1.575;            % Substrate thickness [mm]
+Z0 = 50.0;             % Main line impedance [Ohm]
+ZL = 100.0 - 100.0j;  % Load impedance [Ohm]
+c0 = 299792458 * 1000; % Speed of light [mm/s]
+
+% ── CAD helper: impedance from w/h (wide branch, w/h >= 1) ──
+Z0_cad  = @(wh) 120*pi ./ (sqrt((er+1)/2+(er-1)/2./sqrt(1+12./wh)) ...
+          .* (wh + 1.393 + 0.667*log(wh + 1.444)));
+
+% ── Solve for w/h using a bracket search (reliable for any Z target) ──
+% Sweeps wh from 0.5 to 20 and finds where Z0_cad crosses Ztarget
+solve_wh = @(Ztarget) fzero(@(wh) Z0_cad(wh) - Ztarget, ...
+    feval(@(wh_arr) wh_arr( find( diff(sign(Z0_cad(wh_arr)-Ztarget)) ,1,'first') ), ...
+    linspace(0.5,20,5000)));
+
+% ============================================================
+%  TASK 1 — Main Line Width and Effective Permittivity
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 1 — Main Line Width and Effective Permittivity\n');
+fprintf('============================================================\n');
+
+wh_main   = solve_wh(Z0);
+w_main    = wh_main * h;
+eeff_main = (er+1)/2 + (er-1)/2/sqrt(1+12/wh_main);
+lg_main   = c0/(f0*sqrt(eeff_main));
+beta_m    = 2*pi*f0*sqrt(eeff_main)/c0;
+
+fprintf('  Main line width        w      = %.4f mm\n',  w_main);
+fprintf('  w/h ratio                     = %.4f\n',     wh_main);
+fprintf('  Effective permittivity er_eff = %.4f\n',     eeff_main);
+fprintf('  Guided wavelength      lg     = %.4f mm\n\n', lg_main);
+
+% ============================================================
+%  TASK 2 — Design 1 Dimensions: Quarter-Wave Transformer
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 2 — Design 1 Dimensions: Quarter-Wave Transformer\n');
+fprintf('============================================================\n');
+
+% Step 1: Load reflection coefficient
+gamma_L = (ZL-Z0)/(ZL+Z0);
+fprintf('  Step 1: |Gamma_L|=%.4f, angle=%.4f deg\n\n',...
+        abs(gamma_L), rad2deg(angle(gamma_L)));
+
+% Step 2: Find minimum d where Zin is purely real
+fprintf('  Step 2: Finding minimum distance d\n');
+Zd_imag  = @(d) imag(Z0*(ZL+1j*Z0*tan(beta_m*d))/(Z0+1j*ZL*tan(beta_m*d)));
+d_search = linspace(0.001, lg_main/2, 100000);
+im_vals  = arrayfun(Zd_imag, d_search);
+crossings = find(diff(sign(im_vals)) ~= 0);
+
+d_cands = zeros(1,length(crossings));
+R_cands = zeros(1,length(crossings));
+for k = 1:length(crossings)
+    dc  = fzero(Zd_imag,[d_search(crossings(k)) d_search(crossings(k)+1)]);
+    Zdc = Z0*(ZL+1j*Z0*tan(beta_m*dc))/(Z0+1j*ZL*tan(beta_m*dc));
+    d_cands(k) = dc;
+    R_cands(k) = real(Zdc);
+    fprintf('    Candidate %d: d=%.4f mm, R_in=%.4f Ohm\n',k,dc,real(Zdc));
+end
+[d1_mm,idx] = min(d_cands);
+R1_in       = R_cands(idx);
+fprintf('    --> Selected: d=%.4f mm, R_in=%.4f Ohm\n\n',d1_mm,R1_in);
+
+% Step 3: Transformer impedance ZT = sqrt(Z0 * R_in)
+ZT1 = sqrt(Z0*R1_in);
+fprintf('  Step 3: ZT=%.4f Ohm\n\n',ZT1);
+
+% Step 4: Transformer width
+% ZT1 = 24.2 Ohm << Z0 = 50 Ohm, so transformer is WIDE (wh >> 1)
+% Must use a bracket search over a wide range to find correct wh
+wh_arr   = linspace(0.5, 20, 50000);
+Z_arr    = Z0_cad(wh_arr);
+sign_arr = sign(Z_arr - ZT1);
+idx_cross = find(diff(sign_arr) ~= 0, 1, 'first');
+wh1_t   = fzero(@(wh) Z0_cad(wh) - ZT1, ...
+                [wh_arr(idx_cross) wh_arr(idx_cross+1)]);
+wt1     = wh1_t * h;
+eeff1_t = (er+1)/2 + (er-1)/2/sqrt(1+12/wh1_t);
+lt1_mm  = c0/(f0*sqrt(eeff1_t))/4;
+
+fprintf('  Step 4-5: wh_t=%.4f, wt=%.4f mm, er_eff=%.4f, lt=%.4f mm\n\n',...
+        wh1_t, wt1, eeff1_t, lt1_mm);
+
+% Verify at f0 — must give SWR = 1.0
+bt0  = 2*pi*f0*sqrt(eeff1_t)/c0;
+Zd0  = Z0*(ZL+1j*Z0*tan(beta_m*d1_mm))/(Z0+1j*ZL*tan(beta_m*d1_mm));
+Zin0 = ZT1*(Zd0+1j*ZT1*tan(bt0*lt1_mm))/(ZT1+1j*Zd0*tan(bt0*lt1_mm));
+swr0 = (1+abs((Zin0-Z0)/(Zin0+Z0)))/(1-abs((Zin0-Z0)/(Zin0+Z0)));
+fprintf('  Verification: Zin=%.4f+j%.4f, SWR=%.6f (must be 1.0)\n\n',...
+        real(Zin0),imag(Zin0),swr0);
+
+fprintf('  ---- TASK 2 SUMMARY ----\n');
+fprintf('  w  = %.4f mm\n',  w_main);
+fprintf('  d  = %.4f mm\n',  d1_mm);
+fprintf('  ZT = %.4f Ohm\n', ZT1);
+fprintf('  wt = %.4f mm\n',  wt1);
+fprintf('  er_eff(t) = %.4f\n', eeff1_t);
+fprintf('  lt = %.4f mm\n\n', lt1_mm);
+
+% ============================================================
+%  TASK 3 — SWR vs. Frequency (8 to 12 GHz)
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 3 — SWR vs. Frequency (8 to 12 GHz)\n');
+fprintf('============================================================\n');
+
+N          = 2000;
+freq       = linspace(8e9, 12e9, N);
+swr_before = zeros(1,N);
+swr_after  = zeros(1,N);
+
+G_raw         = (ZL-Z0)/(ZL+Z0);
+swr_before(:) = (1+abs(G_raw))/(1-abs(G_raw));
+
+for i = 1:N
+    f     = freq(i);
+    bm    = 2*pi*f*sqrt(eeff_main)/c0;
+    bt    = 2*pi*f*sqrt(eeff1_t)/c0;
+    Zd_f  = Z0*(ZL+1j*Z0*tan(bm*d1_mm))/(Z0+1j*ZL*tan(bm*d1_mm));
+    Zin_f = ZT1*(Zd_f+1j*ZT1*tan(bt*lt1_mm))/(ZT1+1j*Zd_f*tan(bt*lt1_mm));
+    G_f   = (Zin_f-Z0)/(Zin_f+Z0);
+    swr_after(i) = (1+abs(G_f))/(1-abs(G_f));
+end
+swr_after = min(swr_after, 30);
+
+fprintf('  SWR at key frequencies:\n');
+for fc = [8 9 10 11 12]
+    idx_f = min(N, max(1, round((fc-8)/4*(N-1))+1));
+    fprintf('    f=%2d GHz => SWR=%.4f\n',fc,swr_after(idx_f));
+end
+fprintf('\n');
+
+% ============================================================
+%  TASK 4 — Percent Bandwidth (SWR <= 2.0)
+% ============================================================
+fprintf('============================================================\n');
+fprintf(' TASK 4 — Percent Bandwidth\n');
+fprintf('============================================================\n');
+
+in_band = freq(swr_after <= 2.0);
+if isempty(in_band)
+    fprintf('  SWR never crosses 2.0\n\n');
+    f1_bw=NaN; f2_bw=NaN; bw_pct=0;
+else
+    f1_bw  = in_band(1);
+    f2_bw  = in_band(end);
+    bw_pct = (f2_bw-f1_bw)/f0*100;
+    fprintf('  f1  = %.4f GHz\n', f1_bw/1e9);
+    fprintf('  f2  = %.4f GHz\n', f2_bw/1e9);
+    fprintf('  BW%% = %.2f%%\n\n', bw_pct);
+end
+
+% ============================================================
+%  PLOT — Clear crossing markers showing where SWR = 2.0
+% ============================================================
+red  = [0.85 0.10 0.10];
+blue = [0.13 0.47 0.71];
+gray = [0.50 0.50 0.50];
+
+figure('Units','inches','Position',[1 1 8 5]);
+
+% Shaded bandwidth region
+if ~isnan(f1_bw)
+    fill([f1_bw f2_bw f2_bw f1_bw]/1e9, [1 1 2 2], ...
+         blue, 'FaceAlpha',0.08, 'EdgeColor','none', 'HandleVisibility','off');
+end
+hold on;
+
+% Unmatched (flat dashed)
+plot(freq/1e9, swr_before, '--', 'Color',gray, 'LineWidth',1.8, ...
+     'DisplayName','Unmatched Load');
+
+% Matched SWR curve
+plot(freq/1e9, swr_after, '-', 'Color',blue, 'LineWidth',2.5, ...
+     'DisplayName','Matched System (Design 1)');
+
+% SWR = 2.0 threshold
+yline(2.0, '--', 'Color',red, 'LineWidth',1.5, ...
+      'DisplayName','SWR = 2.0 Threshold');
+
+% f0 line
+xline(10, ':', 'Color',[0.4 0.4 0.4], 'LineWidth',1.2, ...
+      'DisplayName','f_0 = 10 GHz');
+
+if ~isnan(f1_bw)
+    % Vertical drop lines at f1 and f2
+    plot([f1_bw/1e9 f1_bw/1e9], [1.0 2.0], '-', ...
+         'Color',red, 'LineWidth',1.8, 'HandleVisibility','off');
+    plot([f2_bw/1e9 f2_bw/1e9], [1.0 2.0], '-', ...
+         'Color',red, 'LineWidth',1.8, 'HandleVisibility','off');
+
+    % Red dots at crossing points
+    plot(f1_bw/1e9, 2.0, 'o', 'Color',red, ...
+         'MarkerFaceColor',red, 'MarkerSize',9, 'HandleVisibility','off');
+    plot(f2_bw/1e9, 2.0, 'o', 'Color',red, ...
+         'MarkerFaceColor',red, 'MarkerSize',9, 'HandleVisibility','off');
+
+    % Labels at crossing points
+    text(f1_bw/1e9, 2.18, sprintf('f_1=%.2f GHz',f1_bw/1e9), ...
+         'HorizontalAlignment','center','FontSize',9,...
+         'FontWeight','bold','Color',red);
+    text(f2_bw/1e9, 2.18, sprintf('f_2=%.2f GHz',f2_bw/1e9), ...
+         'HorizontalAlignment','center','FontSize',9,...
+         'FontWeight','bold','Color',red);
+
+    % Green dot at perfect match point (f0)
+    [~,idx_f0] = min(abs(freq-f0));
+    plot(10, swr_after(idx_f0), 's', 'Color',[0.0 0.6 0.0], ...
+         'MarkerFaceColor',[0.0 0.6 0.0], 'MarkerSize',9, ...
+         'DisplayName',sprintf('Match point (SWR=%.4f at 10 GHz)',swr_after(idx_f0)));
+
+    % BW label in the middle of the band
+    mid_f = (f1_bw + f2_bw)/2/1e9;
+    text(mid_f, 1.55, sprintf('BW = %.2f%%',bw_pct), ...
+         'HorizontalAlignment','center','FontSize',10,...
+         'FontWeight','bold','Color',blue);
+end
+
+grid on;
+xlim([8 12]);
+ylim([1 max(swr_before)*1.15]);
+xlabel('Frequency (GHz)','FontSize',12);
+ylabel('SWR','FontSize',12);
+title('Design 1 — Quarter-Wave Transformer: SWR vs. Frequency',...
+      'FontSize',13,'FontWeight','bold');
+legend('Location','northeast','FontSize',9);
+
+exportgraphics(gcf,'swr_design1.pdf','ContentType','vector');
+fprintf('  Saved: swr_design1.pdf\n');
